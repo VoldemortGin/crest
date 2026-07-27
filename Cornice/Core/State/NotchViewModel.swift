@@ -21,11 +21,14 @@ final class NotchViewModel {
     /// Current size of the notch overlay (animated).
     var notchSize: CGSize
 
-    /// Current top corner radius (animated).
+    /// Current top corner radius (animated) — used by NotchShape on physical-notch screens.
     var topCornerRadius: CGFloat = AnimationConstants.CornerRadii.closedTop
 
-    /// Current bottom corner radius (animated).
+    /// Current bottom corner radius (animated) — used by NotchShape on physical-notch screens.
     var bottomCornerRadius: CGFloat = AnimationConstants.CornerRadii.closedBottom
+
+    /// Current pill corner radius (animated) — used by PillShape on non-notch screens.
+    var pillCornerRadius: CGFloat = AnimationConstants.PillSizes.closedHeight / 2
 
     /// Whether the mouse is currently hovering over the notch region.
     var isHovered: Bool = false
@@ -68,6 +71,9 @@ final class NotchViewModel {
         self.screenUUID = screenUUID
         self.geometryInfo = geometryInfo
         self.notchSize = geometryInfo.closedSize
+        if !geometryInfo.hasPhysicalNotch {
+            self.pillCornerRadius = AnimationConstants.PillSizes.closedHeight / 2
+        }
         observeSettingsChanges()
     }
 
@@ -213,14 +219,21 @@ final class NotchViewModel {
 
         notchSize = CGSize(width: width, height: height)
 
-        // Interpolate corner radii
-        let closedTopR = AnimationConstants.CornerRadii.closedTop
-        let openTopR = AnimationConstants.CornerRadii.openTop
-        let closedBottomR = AnimationConstants.CornerRadii.closedBottom
-        let openBottomR = AnimationConstants.CornerRadii.openBottom
+        if geometryInfo.hasPhysicalNotch {
+            // Interpolate NotchShape corner radii
+            let closedTopR = AnimationConstants.CornerRadii.closedTop
+            let openTopR = AnimationConstants.CornerRadii.openTop
+            let closedBottomR = AnimationConstants.CornerRadii.closedBottom
+            let openBottomR = AnimationConstants.CornerRadii.openBottom
 
-        topCornerRadius = closedTopR + (openTopR - closedTopR) * clamped
-        bottomCornerRadius = closedBottomR + (openBottomR - closedBottomR) * clamped
+            topCornerRadius = closedTopR + (openTopR - closedTopR) * clamped
+            bottomCornerRadius = closedBottomR + (openBottomR - closedBottomR) * clamped
+        } else {
+            // Interpolate PillShape corner radius
+            let closedR = AnimationConstants.PillSizes.closedHeight / 2
+            let openR = AnimationConstants.PillCornerRadii.open
+            pillCornerRadius = closedR + (openR - closedR) * clamped
+        }
     }
 
     /// Completes a swipe gesture. If committed, opens; otherwise snaps back to closed.
@@ -244,19 +257,34 @@ final class NotchViewModel {
     private func applyStateVisuals(for state: NotchState) {
         notchSize = geometryInfo.size(for: state)
 
-        switch state {
-        case .closed:
-            topCornerRadius = AnimationConstants.CornerRadii.closedTop
-            bottomCornerRadius = AnimationConstants.CornerRadii.closedBottom
-        case .sneakPeek:
-            topCornerRadius = AnimationConstants.CornerRadii.sneakPeekTop
-            bottomCornerRadius = AnimationConstants.CornerRadii.sneakPeekBottom
-        case .open:
-            topCornerRadius = AnimationConstants.CornerRadii.openTop
-            bottomCornerRadius = AnimationConstants.CornerRadii.openBottom
-        case .expandedDetail:
-            topCornerRadius = AnimationConstants.CornerRadii.expandedDetailTop
-            bottomCornerRadius = AnimationConstants.CornerRadii.expandedDetailBottom
+        if geometryInfo.hasPhysicalNotch {
+            // NotchShape radii
+            switch state {
+            case .closed:
+                topCornerRadius = AnimationConstants.CornerRadii.closedTop
+                bottomCornerRadius = AnimationConstants.CornerRadii.closedBottom
+            case .sneakPeek:
+                topCornerRadius = AnimationConstants.CornerRadii.sneakPeekTop
+                bottomCornerRadius = AnimationConstants.CornerRadii.sneakPeekBottom
+            case .open:
+                topCornerRadius = AnimationConstants.CornerRadii.openTop
+                bottomCornerRadius = AnimationConstants.CornerRadii.openBottom
+            case .expandedDetail:
+                topCornerRadius = AnimationConstants.CornerRadii.expandedDetailTop
+                bottomCornerRadius = AnimationConstants.CornerRadii.expandedDetailBottom
+            }
+        } else {
+            // PillShape radius
+            switch state {
+            case .closed:
+                pillCornerRadius = AnimationConstants.PillSizes.closedHeight / 2
+            case .sneakPeek:
+                pillCornerRadius = AnimationConstants.PillSizes.sneakPeekHeight / 2
+            case .open:
+                pillCornerRadius = AnimationConstants.PillCornerRadii.open
+            case .expandedDetail:
+                pillCornerRadius = AnimationConstants.PillCornerRadii.expandedDetail
+            }
         }
     }
 

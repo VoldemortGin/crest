@@ -18,7 +18,7 @@ struct ScreenDescriptor: Equatable, Sendable {
     /// Calculated notch width from auxiliary areas.
     var notchWidth: CGFloat {
         guard hasNotch else {
-            return AnimationConstants.Sizes.virtualNotchWidth
+            return AnimationConstants.PillSizes.closedWidth
         }
         let leftWidth = auxiliaryTopLeftArea?.width ?? 0
         let rightWidth = auxiliaryTopRightArea?.width ?? 0

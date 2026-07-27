@@ -23,6 +23,10 @@ struct NotchGeometryInfo: Equatable, Sendable {
     /// The full frame of the associated screen.
     var screenFrame: NSRect
 
+    /// Vertical offset from the top of the screen.
+    /// 0 for physical notch screens (flush with top), positive for pill displays (floats below menu bar).
+    var topOffset: CGFloat
+
     init(
         hasPhysicalNotch: Bool,
         notchRect: NSRect,
@@ -30,7 +34,8 @@ struct NotchGeometryInfo: Equatable, Sendable {
         openSize: CGSize,
         sneakPeekSize: CGSize,
         expandedDetailSize: CGSize,
-        screenFrame: NSRect
+        screenFrame: NSRect,
+        topOffset: CGFloat = 0
     ) {
         self.hasPhysicalNotch = hasPhysicalNotch
         self.notchRect = notchRect
@@ -39,6 +44,7 @@ struct NotchGeometryInfo: Equatable, Sendable {
         self.sneakPeekSize = sneakPeekSize
         self.expandedDetailSize = expandedDetailSize
         self.screenFrame = screenFrame
+        self.topOffset = topOffset
     }
 
     /// Returns the appropriate size for a given notch state.
@@ -56,11 +62,12 @@ struct NotchGeometryInfo: Equatable, Sendable {
     }
 
     /// Returns the panel frame (in screen coordinates) for a given notch state.
-    /// The panel is horizontally centered and pinned to the top of the screen.
+    /// The panel is horizontally centered and pinned to the top of the screen,
+    /// offset downward by `topOffset` (used for floating pill on non-notch displays).
     func panelFrame(for state: NotchState) -> NSRect {
         let size = size(for: state)
         let originX = screenFrame.midX - size.width / 2
-        let originY = screenFrame.maxY - size.height
+        let originY = screenFrame.maxY - size.height - topOffset
         return NSRect(x: originX, y: originY, width: size.width, height: size.height)
     }
 

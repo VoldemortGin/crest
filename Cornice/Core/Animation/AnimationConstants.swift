@@ -137,4 +137,29 @@ enum AnimationConstants {
         static let virtualNotchWidth: CGFloat = 230
         static let virtualNotchHeight: CGFloat = 32
     }
+
+    // MARK: - Pill Sizes (External / Non-Notch Displays)
+
+    enum PillSizes {
+        /// Closed pill: compact capsule.
+        static let closedWidth: CGFloat = 280
+        static let closedHeight: CGFloat = 36
+
+        /// Sneak peek pill: slightly wider.
+        static let sneakPeekWidth: CGFloat = 350
+        static let sneakPeekHeight: CGFloat = 44
+
+        /// Vertical offset from the top of the screen so the pill floats like Dynamic Island.
+        static let topOffset: CGFloat = 4
+    }
+
+    // MARK: - Pill Corner Radii
+
+    enum PillCornerRadii {
+        /// Open state: rounded rectangle.
+        static let open: CGFloat = 24
+
+        /// Expanded detail state: rounded rectangle.
+        static let expandedDetail: CGFloat = 28
+    }
 }

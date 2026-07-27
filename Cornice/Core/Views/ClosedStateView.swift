@@ -1,26 +1,24 @@
 import SwiftUI
 
 /// Displays minimal indicators in the closed notch state.
-/// Left: battery indicator, Center: music playing bars, Right: next event time.
+/// On physical-notch screens: battery, music bars, next event (current behavior).
+/// On non-notch (pill) screens: floating widget with status indicators.
 struct ClosedStateView: View {
     let viewModel: NotchViewModel
     let featureViewModels: FeatureViewModels
 
+    private var isPill: Bool {
+        !viewModel.geometryInfo.hasPhysicalNotch
+    }
+
     var body: some View {
-        HStack(spacing: 0) {
-            // Left: battery indicator
-            batteryIndicator
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Center: music playing indicator
-            MusicIndicatorView(isPlaying: featureViewModels.media.isPlaying)
-
-            // Right: next calendar event
-            NextEventIndicator(event: featureViewModels.calendar.nextEvent)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+        Group {
+            if isPill {
+                pillClosedContent
+            } else {
+                notchClosedContent
+            }
         }
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             featureViewModels.monitor.startMonitoring()
             featureViewModels.calendar.startObserving()
@@ -30,6 +28,63 @@ struct ClosedStateView: View {
             featureViewModels.calendar.stopObserving()
         }
     }
+
+    // MARK: - Notch Closed Content (Physical Notch)
+
+    @ViewBuilder
+    private var notchClosedContent: some View {
+        HStack(spacing: 0) {
+            batteryIndicator
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            MusicIndicatorView(isPlaying: featureViewModels.media.isPlaying)
+
+            NextEventIndicator(event: featureViewModels.calendar.nextEvent)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Pill Closed Content (External Display)
+
+    @ViewBuilder
+    private var pillClosedContent: some View {
+        HStack(spacing: 8) {
+            // Leading: music playing indicator
+            if featureViewModels.media.isPlaying {
+                MusicIndicatorView(isPlaying: true)
+                    .frame(width: 16, height: 16)
+            } else {
+                // Subtle dot when nothing is playing
+                Circle()
+                    .fill(.white.opacity(0.3))
+                    .frame(width: 6, height: 6)
+            }
+
+            Spacer(minLength: 4)
+
+            // Center/trailing: next calendar event
+            NextEventIndicator(event: featureViewModels.calendar.nextEvent)
+
+            // Trailing: battery if available
+            if featureViewModels.monitor.hasBattery, let battery = featureViewModels.monitor.batteryInfo {
+                HStack(spacing: 3) {
+                    Image(systemName: batteryIconName(level: battery.level, charging: battery.isCharging))
+                        .font(.system(size: 10))
+                        .foregroundStyle(featureViewModels.monitor.batteryColor)
+
+                    Text("\(battery.level)%")
+                        .font(.system(size: 10).monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Shared Helpers
 
     @ViewBuilder
     private var batteryIndicator: some View {

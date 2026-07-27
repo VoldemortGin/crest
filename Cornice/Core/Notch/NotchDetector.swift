@@ -57,7 +57,7 @@ final class NotchDetector {
     /// Uses auxiliary top areas to determine the gap.
     static func notchWidth(for screen: ScreenProviding) -> CGFloat {
         guard hasNotch(screen: screen) else {
-            return AnimationConstants.Sizes.virtualNotchWidth
+            return AnimationConstants.PillSizes.closedWidth
         }
 
         let screenWidth = screen.frame.width
@@ -70,8 +70,12 @@ final class NotchDetector {
 
     /// Calculates the notch height based on the height mode.
     static func notchHeight(for screen: ScreenProviding, mode: NotchHeightMode) -> CGFloat {
-        let descriptor = screenDescriptor(from: screen)
-        return mode.height(for: descriptor)
+        if hasNotch(screen: screen) {
+            let descriptor = screenDescriptor(from: screen)
+            return mode.height(for: descriptor)
+        }
+        // Non-notch screens use pill closed height.
+        return AnimationConstants.PillSizes.closedHeight
     }
 
     /// Computes full geometry info for a given screen.
@@ -80,25 +84,46 @@ final class NotchDetector {
         heightMode: NotchHeightMode = .matchNotch
     ) -> NotchGeometryInfo {
         let hasPhysical = hasNotch(screen: screen)
-        let width = notchWidth(for: screen)
-        let height = notchHeight(for: screen, mode: heightMode)
+
+        let width: CGFloat
+        let height: CGFloat
+        let topOffset: CGFloat
+
+        if hasPhysical {
+            // Physical notch: use real notch dimensions, flush with top.
+            width = notchWidth(for: screen)
+            height = notchHeight(for: screen, mode: heightMode)
+            topOffset = 0
+        } else {
+            // External / non-notch display: use pill dimensions, float below top.
+            width = AnimationConstants.PillSizes.closedWidth
+            height = AnimationConstants.PillSizes.closedHeight
+            topOffset = AnimationConstants.PillSizes.topOffset
+        }
 
         let notchRect = NSRect(
             x: screen.frame.midX - width / 2,
-            y: screen.frame.maxY - height,
+            y: screen.frame.maxY - height - topOffset,
             width: width,
             height: height
         )
 
         let closedSize = CGSize(width: width, height: height)
 
+        let sneakPeekWidth: CGFloat
+        let sneakPeekHeight: CGFloat
+        if hasPhysical {
+            sneakPeekWidth = min(AnimationConstants.Sizes.sneakPeekWidth, screen.frame.width * 0.4)
+            sneakPeekHeight = AnimationConstants.Sizes.sneakPeekHeight
+        } else {
+            sneakPeekWidth = min(AnimationConstants.PillSizes.sneakPeekWidth, screen.frame.width * 0.4)
+            sneakPeekHeight = AnimationConstants.PillSizes.sneakPeekHeight
+        }
+        let sneakPeekSize = CGSize(width: sneakPeekWidth, height: sneakPeekHeight)
+
         let openWidth = min(AnimationConstants.Sizes.openWidth, screen.frame.width * 0.6)
         let openHeight = AnimationConstants.Sizes.openHeight
         let openSize = CGSize(width: openWidth, height: openHeight)
-
-        let sneakPeekWidth = min(AnimationConstants.Sizes.sneakPeekWidth, screen.frame.width * 0.4)
-        let sneakPeekHeight = AnimationConstants.Sizes.sneakPeekHeight
-        let sneakPeekSize = CGSize(width: sneakPeekWidth, height: sneakPeekHeight)
 
         let expandedWidth = min(AnimationConstants.Sizes.expandedDetailWidth, screen.frame.width * 0.6)
         let expandedHeight = min(AnimationConstants.Sizes.expandedDetailHeight, screen.frame.height * 0.5)
@@ -111,7 +136,8 @@ final class NotchDetector {
             openSize: openSize,
             sneakPeekSize: sneakPeekSize,
             expandedDetailSize: expandedDetailSize,
-            screenFrame: screen.frame
+            screenFrame: screen.frame,
+            topOffset: topOffset
         )
     }
 
